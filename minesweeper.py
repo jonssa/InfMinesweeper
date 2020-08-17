@@ -4,74 +4,95 @@ import random
 class Board:
     def __init__(self):
         self.board_size = 5
-        self.mines_count = 5
+        self.mines_count = 3
         self.grid = []
+        self.depth = 1
 
     def set_size_and_mines(self):
-        mines = input("New mines count: ")
-        size = input("New board size: ")
+        size = input("New start board size: ")
+        mines = input("New start mines count: ")
         print(" ")
         self.mines_count = int(mines)
         self.board_size = int(size)
 
     def create_grid(self):
-        self.grid = [[[Cell] for row in range(int(self.board_size))] for column in range(int(self.board_size))]
+        #self.grid = [[[Cell] for row in range(int(self.board_size))] for column in range(int(self.board_size))]
         for row in range(int(self.board_size)):
             for column in range(int(self.board_size)):
-                self.grid[column][row] = Cell(column, row)
+                self.grid.append(Cell(column, row))
 
     def show_grid(self):
-        for row in range(int(self.board_size)):
-            for column in range(int(self.board_size)):
-                print(" #", sep=' ', end='', flush=True)
-            print("")
-
-    def refresh_grid(self):
-        for row in range(int(self.board_size)):
-            for column in range(int(self.board_size)):
-                if not self.grid[column][row].check_if_hidden():
-                    if self.grid[column][row].check_if_mine():
-                        item = " #"
-                    else:
-                        item = " " + str(self.grid[column][row].check_adjacency())
-                else:
+        for row in range(int(self.board_size) + 2 * self.depth):
+            for column in range(int(self.board_size) + 2 * self.depth):
+                if next((obj for obj in self.grid if obj.x_pos + self.depth == row and obj.y_pos + self.depth == column), False):
                     item = " #"
+                else:
+                    item = " U"
                 print(item, sep=' ', end='', flush=True)
             print("")
 
+    def refresh_grid(self):
+        for row in range(self.board_size + 2 * self.depth):
+            for column in range(self.board_size + 2 * self.depth):
+                space = " "
+                if next((obj for obj in self.grid if obj.x_pos + self.depth == column and obj.y_pos + self.depth == row), False):
+                    if not self.grid[self.board_size * (row - self.depth) + column - 1].check_if_hidden():
+                        if self.grid[self.board_size * (row - self.depth) + column - 1].check_if_mine():
+                            item = " #"
+                        else:
+                            item = " " + str(self.grid[self.board_size * (row - self.depth) + column - 1].check_adjacency())
+                    else:
+                        item = " #"
+                else:
+                    item = " U"
+                    if (column % (int(self.board_size) + 2 * self.depth)) == (int(self.board_size) + 2 * self.depth - 1):
+                        space = " \n"
+                    else:
+                        space = " "
+                print(item + space, sep=' ', end='', flush=True)
+        print("")
+
     def show_cell(self, x, y):
-        if (self.grid[x][y].check_adjacency() == 0) and self.grid[x][y].check_if_hidden() and not self.grid[x][y].check_if_mine():
-            self.show_more_cells(x, y)
-        if self.grid[x][y].check_if_mine():
+        pos = self.grid.index(next(obj for obj in self.grid if (obj.x_pos == x and obj.y_pos == y)))
+        if (self.grid[pos].check_adjacency() == 0) and self.grid[pos].check_if_hidden() and not self.grid[pos].check_if_mine():
+            self.show_more_cells(pos)
+        if self.grid[pos].check_if_mine():
             return True
         no_mine = True
-        self.grid[x][y].uncover_cell()
-        for adj_y in range(int(self.board_size)):
-            for adj_x in range(int(self.board_size)):
-                if -1 <= x - adj_x <= 1 and -1 <= y - adj_y <= 1:
-                    if int(self.grid[adj_x][adj_y].check_if_mine()):
-                        no_mine = False
+        self.grid[pos].uncover_cell()
+        x = self.grid[pos].get_cell_x_pos()
+        y = self.grid[pos].get_cell_y_pos()
+        for adj_pos in range(int(self.board_size) ** 2):
+            adj_x = self.grid[adj_pos].get_cell_x_pos()
+            adj_y = self.grid[adj_pos].get_cell_y_pos()
+            if -1 <= x - adj_x <= 1 and -1 <= y - adj_y <= 1:
+                if int(self.grid[adj_pos].check_if_mine()):
+                    no_mine = False
         if no_mine:
-            for adj_y in range(int(self.board_size)):
-                for adj_x in range(int(self.board_size)):
-                    if -1 <= x - adj_x <= 1 and -1 <= y - adj_y <= 1:
-                        if (self.grid[adj_x][adj_y].check_adjacency() == 0) and self.grid[adj_x][adj_y].check_if_hidden() and not self.grid[adj_x][adj_y].check_if_mine():
-                            self.show_more_cells(adj_x, adj_y)
-                        else:
-                            self.grid[adj_x][adj_y].uncover_cell()
+            for adj_pos in range(int(self.board_size) ** 2):
+                adj_x = self.grid[adj_pos].get_cell_x_pos()
+                adj_y = self.grid[adj_pos].get_cell_y_pos()
+                if -1 <= x - adj_x <= 1 and -1 <= y - adj_y <= 1:
+                    if (self.grid[adj_pos].check_adjacency() == 0) and self.grid[adj_pos].check_if_hidden() and not self.grid[adj_pos].check_if_mine():
+                        self.show_more_cells(adj_pos)
+                    else:
+                        self.grid[adj_pos].uncover_cell()
         self.refresh_grid()
         no_mine = True
         return False
 
-    def show_more_cells(self, x, y):
-        self.grid[x][y].uncover_cell()
-        for adj_y in range(int(self.board_size)):
-            for adj_x in range(int(self.board_size)):
-                if -1 <= x - adj_x <= 1 and -1 <= y - adj_y <= 1:
-                    if (self.grid[adj_x][adj_y].check_adjacency() == 0) and self.grid[adj_x][adj_y].check_if_hidden() and not self.grid[adj_x][adj_y].check_if_mine():
-                        self.show_more_cells(adj_x, adj_y)
-                    else:
-                        self.grid[adj_x][adj_y].uncover_cell()
+    def show_more_cells(self, pos):
+        self.grid[pos].uncover_cell()
+        x = self.grid[pos].get_cell_x_pos()
+        y = self.grid[pos].get_cell_y_pos()
+        for adj_pos in range(int(self.board_size) ** 2):
+            adj_x = self.grid[adj_pos].get_cell_x_pos()
+            adj_y = self.grid[adj_pos].get_cell_y_pos()
+            if -1 <= x - adj_x <= 1 and -1 <= y - adj_y <= 1:
+                if (self.grid[adj_pos].check_adjacency() == 0) and self.grid[adj_pos].check_if_hidden() and not self.grid[adj_pos].check_if_mine():
+                    self.show_more_cells(adj_pos)
+                else:
+                    self.grid[adj_pos].uncover_cell()
 
     def return_board_size(self):
         return self.board_size
@@ -84,31 +105,28 @@ class Board:
 
     def create_minefield(self):
         for num in range(int(self.mines_count)):
-            randx = random.randint(0, self.board_size-1)
-            randy = random.randint(0, self.board_size-1)
-            while self.grid[randx][randy].check_if_mine():
-                randx = random.randint(0, self.board_size-1)
-                randy = random.randint(0, self.board_size-1)
-            self.grid[randx][randy].set_mine()
-        for row in range(int(self.board_size)):
-            for column in range(int(self.board_size)):
-                self.check_adjacent(column, row)
+            rand_ = random.randint(0, self.board_size ** 2 - 1)
+            while self.grid[rand_].check_if_mine():
+                rand_ = random.randint(0, self.board_size ** 2 - 1)
+            self.grid[rand_].set_mine()
+        for pos in range(int(self.board_size) ** 2):
+            self.check_adjacent(pos)
 
-    def check_adjacent(self, x, y):
-        cur_x = int(self.grid[x][y].get_cell_x_pos())
-        cur_y = int(self.grid[x][y].get_cell_y_pos())
-        if not self.grid[cur_x][cur_y].check_if_mine():
-            for row in range(int(self.board_size)):
-                for column in range(int(self.board_size)):
-                    adj_x = int(self.grid[column][row].get_cell_x_pos())
-                    adj_y = int(self.grid[column][row].get_cell_y_pos())
-                    if not (cur_x == adj_x and cur_y == adj_y):
-                        if -1 <= cur_x - adj_x <= 1 and -1 <= cur_y - adj_y <= 1:
-                            if self.grid[column][row].check_if_mine():
-                                self.grid[x][y].adjacent_mines += 1
+    def check_adjacent(self, pos):
+        cur_xpos = int(self.grid[pos].get_cell_x_pos())
+        cur_ypos = int(self.grid[pos].get_cell_y_pos())
+        if not self.grid[pos].check_if_mine():
+            for adj_pos in range(int(self.board_size) ** 2):
+                adj_xpos = int(self.grid[adj_pos].get_cell_x_pos())
+                adj_ypos = int(self.grid[adj_pos].get_cell_y_pos())
+                if not (cur_xpos == adj_xpos and cur_ypos == adj_ypos):
+                    if -1 <= cur_xpos - adj_xpos <= 1 and -1 <= cur_ypos - adj_ypos <= 1:
+                        if self.grid[adj_pos].check_if_mine():
+                            self.grid[pos].adjacent_mines += 1
 
 
 class Cell(Board):
+    counter = 0
     def __init__(self, x, y):
         Board.__init__(self)
         self.x_pos = x
@@ -117,6 +135,7 @@ class Cell(Board):
         self.is_flag = False
         self.is_hidden = True
         self.adjacent_mines = 0
+        Cell.counter += 1
 
     def new_pos(self):
         x = input("New x pos: ")
@@ -164,6 +183,7 @@ def game():
     print("Creating new Board ...")
     board.create_grid()
     board.create_minefield()
+    print("Number of cells: ", Cell.counter)
     board.show_grid()
     while(1):
         print("Which cell You want to uncover?")
