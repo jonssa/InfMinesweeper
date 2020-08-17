@@ -6,7 +6,7 @@ class Board:
         self.board_size = 5
         self.mines_count = 3
         self.grid = []
-        self.depth = 1
+        self.depth = 5
 
     def set_size_and_mines(self):
         size = input("New start board size: ")
@@ -36,11 +36,11 @@ class Board:
             for column in range(self.board_size + 2 * self.depth):
                 space = " "
                 if next((obj for obj in self.grid if obj.x_pos + self.depth == column and obj.y_pos + self.depth == row), False):
-                    if not self.grid[self.board_size * (row - self.depth) + column - 1].check_if_hidden():
-                        if self.grid[self.board_size * (row - self.depth) + column - 1].check_if_mine():
+                    if not self.grid[self.board_size * (row - self.depth) + column - self.depth].check_if_hidden():
+                        if self.grid[self.board_size * (row - self.depth) + column - self.depth].check_if_mine():
                             item = " #"
                         else:
-                            item = " " + str(self.grid[self.board_size * (row - self.depth) + column - 1].check_adjacency())
+                            item = " " + str(self.grid[self.board_size * (row - self.depth) + column - self.depth].check_adjacency())
                     else:
                         item = " #"
                 else:
